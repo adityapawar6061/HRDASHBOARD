@@ -1,11 +1,11 @@
 const logger = require('../config/logger');
 
 const errorHandler = (err, req, res, next) => {
-  logger.error(err.message, { stack: err.stack, path: req.path });
-  const status = err.status || 500;
-  res.status(status).json({
-    error: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message
-  });
+  // Services throw plain objects { status, message }, Error instances have .message
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || (typeof err === 'object' ? JSON.stringify(err) : String(err));
+  logger.error(message, { path: req.path });
+  res.status(status).json({ error: message });
 };
 
 const notFound = (req, res) => {
