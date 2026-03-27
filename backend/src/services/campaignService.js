@@ -13,14 +13,48 @@ const getAll = async () => {
     `)
     .order('created_at', { ascending: false });
   if (error) throw { status: 500, message: error.message };
-  return data;
+
+  // For each campaign, check which assigned users are currently punched in
+  const campaignIds = data.map(c => c.id);
+  if (campaignIds.length === 0) return data;
+
+  // Get all open punch-ins for assigned users across these campaigns
+  const allUserIds = [...new Set(data.flatMap(c => c.campaign_assignments.map(a => a.user_id)))];
+
+  let activeLogs = [];
+  if (allUserIds.length > 0) {
+    const { data: logs } = await supabase
+      .from('attendance_logs')
+      .select('user_id, punch_in_time, campaign_id')
+      .in('user_id', allUserIds)
+      .is('punch_out_time', null);
+    activeLogs = logs || [];
+  }
+
+  // Attach punched_in status to each assignment
+  return data.map(campaign => ({
+    ...campaign,
+    campaign_assignments: campaign.campaign_assignments.map(a => ({
+      ...a,
+      is_punched_in: activeLogs.some(l => l.user_id === a.user_id),
+      punch_in_time: activeLogs.find(l => l.user_id === a.user_id)?.punch_in_time || null,
+    }))
+  }));
 };
 
 const create = async (fields) => {
-  const { name, description, company_id, location_lat, location_lng, location_radius_meters, min_hours, salary_per_min_hours } = fields;
+  const { name, description, company_id, location_lat, location_lng, location_radius_meters,
+    min_hours, salary_per_min_hours, start_datetime, end_datetime, timezone } = fields;
   const { data, error } = await supabase
     .from('campaigns')
-    .insert({ name, description, company_id: company_id || null, location_lat, location_lng, location_radius_meters, min_hours, salary_per_min_hours })
+    .insert({
+      name, description, company_id: company_id || null,
+      location_lat, location_lng, location_radius_meters,
+      min_hours, salary_per_min_hours,
+      start_datetime: start_datetime || null,
+      end_datetime: end_datetime || null,
+      timezone: timezone || 'Asia/Kolkata'
+    })
     .select('*, companies(id, name)')
     .single();
   if (error) throw { status: 500, message: error.message };
@@ -28,10 +62,18 @@ const create = async (fields) => {
 };
 
 const update = async (id, fields) => {
-  const { name, description, company_id, location_lat, location_lng, location_radius_meters, min_hours, salary_per_min_hours } = fields;
+  const { name, description, company_id, location_lat, location_lng, location_radius_meters,
+    min_hours, salary_per_min_hours, start_datetime, end_datetime, timezone } = fields;
   const { data, error } = await supabase
     .from('campaigns')
-    .update({ name, description, company_id: company_id || null, location_lat, location_lng, location_radius_meters, min_hours, salary_per_min_hours })
+    .update({
+      name, description, company_id: company_id || null,
+      location_lat, location_lng, location_radius_meters,
+      min_hours, salary_per_min_hours,
+      start_datetime: start_datetime || null,
+      end_datetime: end_datetime || null,
+      timezone: timezone || 'Asia/Kolkata'
+    })
     .eq('id', id)
     .select('*, companies(id, name)')
     .single();

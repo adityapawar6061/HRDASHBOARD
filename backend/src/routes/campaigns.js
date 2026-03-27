@@ -13,6 +13,9 @@ const campaignBody = [
   body('location_lat').optional().isFloat({ min: -90, max: 90 }),
   body('location_lng').optional().isFloat({ min: -180, max: 180 }),
   body('location_radius_meters').optional().isInt({ min: 50 }),
+  body('start_datetime').optional().isISO8601(),
+  body('end_datetime').optional().isISO8601(),
+  body('timezone').optional().isString(),
 ];
 
 router.get('/', c.getAll);
