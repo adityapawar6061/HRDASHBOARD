@@ -1,0 +1,15 @@
+node_modules/
+.env
+*.env
+dist/
+build/
+.DS_Store
+*.log
+.gradle/
+*.iml
+local.properties
+android-app/.idea/
+android-app/app/build/
+ios-app/DerivedData/
+ios-app/*.xcworkspace/xcuserdata/
+ios-app/Pods/

@@ -1,0 +1,11 @@
+{
+  "name": "hr-dashboard-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "backend": "cd backend && npm run dev",
+    "webapp": "cd webapp && npm start",
+    "install:all": "cd backend && npm install && cd ../webapp && npm install",
+    "build:webapp": "cd webapp && npm run build"
+  }
+}
