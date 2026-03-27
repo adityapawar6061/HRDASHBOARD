@@ -15,7 +15,15 @@ api.interceptors.response.use(
       localStorage.removeItem('token');
       window.location.href = '/login';
     }
-    return Promise.reject(err.response?.data || err);
+    const data = err.response?.data;
+    const message =
+      (typeof data === 'object' && data !== null && (data.error || data.message))
+        ? (data.error || data.message)
+        : err.message || 'Something went wrong';
+    const rejection = new Error(message);
+    rejection.status = err.response?.status;
+    rejection.data = data;
+    return Promise.reject(rejection);
   }
 );
 

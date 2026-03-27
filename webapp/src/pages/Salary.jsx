@@ -11,9 +11,13 @@ const Salary = () => {
   const [generating, setGenerating] = useState(false);
 
   const fetchAll = async () => {
-    const [s, u] = await Promise.all([api.get('/salary'), api.get('/users')]);
-    setSalaries(s.data);
-    setEmployees(u.data);
+    try {
+      const [s, u] = await Promise.all([api.get('/salary'), api.get('/users')]);
+      setSalaries(s.data);
+      setEmployees(u.data);
+    } catch (err) {
+      setError(err.message || 'Failed to load data');
+    }
   };
 
   useEffect(() => { fetchAll(); }, []);
@@ -32,7 +36,7 @@ const Salary = () => {
       setExpandedId(result.data.id);
       fetchAll();
     } catch (err) {
-      setError(err.error || err.message || 'Failed to generate payslip');
+      setError(err.message || 'Failed to generate payslip');
     } finally { setGenerating(false); }
   };
 

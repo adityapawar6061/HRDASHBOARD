@@ -9,9 +9,13 @@ const Employees = () => {
   const [error, setError] = useState('');
 
   const fetchAll = async () => {
-    const [emp, comp] = await Promise.all([api.get('/users'), api.get('/companies')]);
-    setEmployees(emp.data);
-    setCompanies(comp.data);
+    try {
+      const [emp, comp] = await Promise.all([api.get('/users'), api.get('/companies')]);
+      setEmployees(emp.data);
+      setCompanies(comp.data);
+    } catch (err) {
+      setError(err.message || 'Failed to load data');
+    }
   };
 
   useEffect(() => { fetchAll(); }, []);
@@ -25,7 +29,7 @@ const Employees = () => {
       setShowForm(false);
       fetchAll();
     } catch (err) {
-      setError(err.error || 'Failed to create employee');
+      setError(err.message || 'Failed to create employee');
     }
   };
 

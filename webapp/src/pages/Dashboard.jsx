@@ -18,27 +18,30 @@ const Dashboard = () => {
 
   useEffect(() => {
     const fetchStats = async () => {
-      const [users, attendance, campaigns] = await Promise.all([
-        api.get('/users'),
-        api.get('/attendance', { params: { date: new Date().toISOString().split('T')[0] } }),
-        api.get('/campaigns'),
-      ]);
-      setStats({
-        employees: users.data.length,
-        todayAttendance: attendance.data.total,
-        campaigns: campaigns.data.length,
-      });
+      try {
+        const [users, attendance, campaigns] = await Promise.all([
+          api.get('/users'),
+          api.get('/attendance', { params: { date: new Date().toISOString().split('T')[0] } }),
+          api.get('/campaigns'),
+        ]);
+        setStats({
+          employees: users.data.length,
+          todayAttendance: attendance.data.total,
+          campaigns: campaigns.data.length,
+        });
 
-      // Build last 7 days chart data
-      const days = Array.from({ length: 7 }, (_, i) => {
-        const d = new Date();
-        d.setDate(d.getDate() - (6 - i));
-        return d.toISOString().split('T')[0];
-      });
-      const chartResults = await Promise.all(
-        days.map(date => api.get('/attendance', { params: { date } }).then(r => ({ date: date.slice(5), count: r.data.total })))
-      );
-      setChartData(chartResults);
+        const days = Array.from({ length: 7 }, (_, i) => {
+          const d = new Date();
+          d.setDate(d.getDate() - (6 - i));
+          return d.toISOString().split('T')[0];
+        });
+        const chartResults = await Promise.all(
+          days.map(date => api.get('/attendance', { params: { date } }).then(r => ({ date: date.slice(5), count: r.data.total })))
+        );
+        setChartData(chartResults);
+      } catch (err) {
+        console.error('Dashboard load error:', err.message);
+      }
     };
     fetchStats();
   }, []);

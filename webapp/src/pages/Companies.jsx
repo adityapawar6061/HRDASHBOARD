@@ -8,7 +8,14 @@ const Companies = () => {
   const [form, setForm] = useState({ name: '', address_line1: '', address_line2: '' });
   const [error, setError] = useState('');
 
-  const fetchCompanies = () => api.get('/companies').then(r => setCompanies(r.data));
+  const fetchCompanies = async () => {
+    try {
+      const r = await api.get('/companies');
+      setCompanies(r.data);
+    } catch (err) {
+      setError(err.message || 'Failed to load companies');
+    }
+  };
 
   useEffect(() => { fetchCompanies(); }, []);
 

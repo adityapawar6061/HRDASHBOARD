@@ -19,9 +19,13 @@ const Campaigns = () => {
   const [expandedId, setExpandedId] = useState(null);
 
   const fetchAll = async () => {
-    const [c, u] = await Promise.all([api.get('/campaigns'), api.get('/users')]);
-    setCampaigns(c.data);
-    setEmployees(u.data);
+    try {
+      const [c, u] = await Promise.all([api.get('/campaigns'), api.get('/users')]);
+      setCampaigns(c.data);
+      setEmployees(u.data);
+    } catch (err) {
+      setError(err.message || 'Failed to load campaigns');
+    }
   };
 
   useEffect(() => { fetchAll(); }, []);
@@ -56,7 +60,7 @@ const Campaigns = () => {
       else await api.post('/campaigns', payload);
       resetForm();
       fetchAll();
-    } catch (err) { setError(err.error || 'Failed to save campaign'); }
+    } catch (err) { setError(err.message || 'Failed to save campaign'); }
   };
 
   const handleDelete = async id => {
