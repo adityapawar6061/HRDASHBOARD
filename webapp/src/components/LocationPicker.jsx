@@ -1,5 +1,26 @@
 import { useEffect, useRef, useState } from 'react';
 
+const loadGoogleMaps = () => {
+  return new Promise((resolve, reject) => {
+    if (window.google?.maps) { resolve(); return; }
+    if (document.getElementById('gmap-script')) {
+      // Script already injected, wait for it
+      const check = setInterval(() => {
+        if (window.google?.maps) { clearInterval(check); resolve(); }
+      }, 100);
+      return;
+    }
+    const script = document.createElement('script');
+    script.id = 'gmap-script';
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.REACT_APP_GOOGLE_MAPS_KEY}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+};
+
 const LocationPicker = ({ lat, lng, radius, onChange }) => {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
@@ -8,13 +29,13 @@ const LocationPicker = ({ lat, lng, radius, onChange }) => {
   const searchRef = useRef(null);
   const autocompleteRef = useRef(null);
   const [mapReady, setMapReady] = useState(false);
+  const [mapError, setMapError] = useState('');
 
-  // Wait for Google Maps to be available
+  // Load Google Maps dynamically
   useEffect(() => {
-    const check = setInterval(() => {
-      if (window.google?.maps) { setMapReady(true); clearInterval(check); }
-    }, 200);
-    return () => clearInterval(check);
+    loadGoogleMaps()
+      .then(() => setMapReady(true))
+      .catch(() => setMapError('Failed to load Google Maps. Check your API key.'));
   }, []);
 
   // Init map once Google is ready
@@ -135,7 +156,8 @@ const LocationPicker = ({ lat, lng, radius, onChange }) => {
       </div>
 
       {/* Map */}
-      {!mapReady && (
+      {mapError && <div className="error-msg">{mapError}</div>}
+      {!mapReady && !mapError && (
         <div className="map-loading">⏳ Loading map...</div>
       )}
       <div ref={mapRef} className="location-map" style={{ display: mapReady ? 'block' : 'none' }} />
