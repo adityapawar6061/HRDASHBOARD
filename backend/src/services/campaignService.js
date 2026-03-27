@@ -3,26 +3,34 @@ const { supabase } = require('../config/supabase');
 const getAll = async () => {
   const { data, error } = await supabase
     .from('campaigns')
-    .select('*, campaign_assignments(user_id, users(name, email))')
+    .select(`
+      *,
+      campaign_assignments(
+        user_id,
+        users(id, name, email)
+      )
+    `)
     .order('created_at', { ascending: false });
   if (error) throw { status: 500, message: error.message };
   return data;
 };
 
-const create = async ({ name, description }) => {
+const create = async (fields) => {
+  const { name, description, location_lat, location_lng, location_radius_meters, min_hours, salary_per_min_hours } = fields;
   const { data, error } = await supabase
     .from('campaigns')
-    .insert({ name, description })
+    .insert({ name, description, location_lat, location_lng, location_radius_meters, min_hours, salary_per_min_hours })
     .select()
     .single();
   if (error) throw { status: 500, message: error.message };
   return data;
 };
 
-const update = async (id, { name, description }) => {
+const update = async (id, fields) => {
+  const { name, description, location_lat, location_lng, location_radius_meters, min_hours, salary_per_min_hours } = fields;
   const { data, error } = await supabase
     .from('campaigns')
-    .update({ name, description })
+    .update({ name, description, location_lat, location_lng, location_radius_meters, min_hours, salary_per_min_hours })
     .eq('id', id)
     .select()
     .single();

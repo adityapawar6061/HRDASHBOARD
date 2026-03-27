@@ -117,3 +117,74 @@ tr.clickable:hover td { background: var(--bg); cursor: pointer; }
 .error-msg { background: #fef2f2; color: var(--danger); padding: 10px 14px; border-radius: 8px; font-size: 14px; margin-bottom: 12px; }
 .empty-state { text-align: center; color: var(--muted); padding: 32px; font-size: 14px; }
 .loading { display: flex; align-items: center; justify-content: center; height: 100vh; font-size: 18px; color: var(--muted); }
+
+/* Company page */
+.companies-list { display: flex; flex-direction: column; gap: 12px; }
+.company-detail-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+.company-detail-header { display: flex; justify-content: space-between; align-items: flex-start; }
+.company-detail-header h3 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+.company-address p { font-size: 14px; color: var(--muted); margin: 2px 0; }
+.company-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.company-meta { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); }
+.empty-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 48px; text-align: center; }
+.empty-card p:first-child { font-size: 48px; margin-bottom: 8px; }
+.empty-card p { color: var(--muted); margin-bottom: 16px; }
+
+/* Form improvements */
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-group label { font-size: 13px; font-weight: 600; color: var(--text); }
+.form-card form { display: flex; flex-direction: column; gap: 14px; max-width: 480px; }
+.field-hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.field-hint a { color: var(--primary); text-decoration: none; }
+.field-hint a:hover { text-decoration: underline; }
+
+/* Company tag in employee table */
+.company-tag { background: #e0f2fe; color: #0369a1; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+.muted { color: var(--muted); font-size: 13px; }
+
+/* Campaign full cards */
+.campaigns-list-full { display: flex; flex-direction: column; gap: 16px; }
+.campaign-full-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+.campaign-full-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+.campaign-full-header h3 { font-size: 17px; font-weight: 700; }
+.campaign-desc { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.campaign-full-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.campaign-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.pill { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+.pill-blue { background: #ede9fe; color: #4f46e5; }
+.pill-green { background: #dcfce7; color: #16a34a; }
+.pill-gray { background: #f1f5f9; color: #64748b; }
+.pill-purple { background: #fce7f3; color: #9d174d; }
+.campaign-employees-toggle { font-size: 13px; color: var(--primary); cursor: pointer; padding: 8px 0; border-top: 1px solid var(--border); font-weight: 500; }
+.campaign-employees-toggle:hover { text-decoration: underline; }
+.assigned-employees { padding: 8px 0; display: flex; flex-direction: column; gap: 8px; }
+.assigned-employee-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--bg); border-radius: 8px; font-size: 14px; }
+
+/* Form sections */
+.form-section-title { font-size: 13px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; padding: 8px 0 4px; border-bottom: 1px solid var(--border); margin-bottom: 4px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.salary-preview { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 14px; font-size: 13px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.info-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px 14px; font-size: 13px; color: #1e40af; }
+
+/* Payslips */
+.payslips-list { display: flex; flex-direction: column; gap: 16px; }
+.payslip-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.payslip-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+.payslip-employee h3 { font-size: 16px; font-weight: 700; }
+.payslip-month-badge { background: var(--primary); color: white; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+.payslip-summary { display: grid; grid-template-columns: repeat(4, 1fr); padding: 16px 20px; gap: 12px; border-bottom: 1px solid var(--border); }
+.payslip-stat { display: flex; flex-direction: column; gap: 4px; }
+.payslip-stat span { font-size: 12px; color: var(--muted); }
+.payslip-stat strong { font-size: 18px; }
+.payslip-total strong { font-size: 20px; color: var(--primary); }
+.breakdown-toggle { width: 100%; padding: 10px 20px; background: var(--bg); border: none; border-top: 1px solid var(--border); text-align: left; font-size: 13px; font-weight: 600; color: var(--primary); cursor: pointer; }
+.breakdown-toggle:hover { background: #ede9fe; }
+.breakdown-table { padding: 0 20px 16px; }
+.breakdown-table table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+.breakdown-table th { background: var(--bg); padding: 10px 12px; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; }
+.breakdown-table td { padding: 10px 12px; border-top: 1px solid var(--border); font-size: 14px; }
+.breakdown-table tfoot td { border-top: 2px solid var(--border); font-size: 14px; padding: 10px 12px; }
+.net-row td { background: #f0fdf4; }
+.text-success { color: #16a34a; }
+.text-danger { color: var(--danger); }

@@ -4,6 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import Companies from './pages/Companies';
 import Employees from './pages/Employees';
 import Attendance from './pages/Attendance';
 import Campaigns from './pages/Campaigns';
@@ -20,6 +21,7 @@ const App = () => (
             <Layout>
               <Routes>
                 <Route path="/" element={<Dashboard />} />
+                <Route path="/companies" element={<Companies />} />
                 <Route path="/employees" element={<Employees />} />
                 <Route path="/attendance" element={<Attendance />} />
                 <Route path="/campaigns" element={<Campaigns />} />

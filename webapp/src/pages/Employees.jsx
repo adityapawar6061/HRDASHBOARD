@@ -3,22 +3,27 @@ import api from '../services/api';
 
 const Employees = () => {
   const [employees, setEmployees] = useState([]);
+  const [companies, setCompanies] = useState([]);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', password: '' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', company_id: '' });
   const [error, setError] = useState('');
 
-  const fetchEmployees = () => api.get('/users').then(r => setEmployees(r.data));
+  const fetchAll = async () => {
+    const [emp, comp] = await Promise.all([api.get('/users'), api.get('/companies')]);
+    setEmployees(emp.data);
+    setCompanies(comp.data);
+  };
 
-  useEffect(() => { fetchEmployees(); }, []);
+  useEffect(() => { fetchAll(); }, []);
 
   const handleCreate = async e => {
     e.preventDefault();
     setError('');
     try {
       await api.post('/users', form);
-      setForm({ name: '', email: '', password: '' });
+      setForm({ name: '', email: '', password: '', company_id: '' });
       setShowForm(false);
-      fetchEmployees();
+      fetchAll();
     } catch (err) {
       setError(err.error || 'Failed to create employee');
     }
@@ -38,10 +43,52 @@ const Employees = () => {
           <h3>New Employee</h3>
           {error && <div className="error-msg">{error}</div>}
           <form onSubmit={handleCreate}>
-            <input placeholder="Full Name" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
-            <input type="email" placeholder="Email" required value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
-            <input type="password" placeholder="Password (min 6 chars)" required minLength={6} value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} />
-            <button type="submit" className="btn-primary">Create</button>
+            <div className="form-group">
+              <label>Full Name *</label>
+              <input
+                placeholder="e.g. John Doe"
+                required
+                value={form.name}
+                onChange={e => setForm({ ...form, name: e.target.value })}
+              />
+            </div>
+            <div className="form-group">
+              <label>Email *</label>
+              <input
+                type="email"
+                placeholder="e.g. john@example.com"
+                required
+                value={form.email}
+                onChange={e => setForm({ ...form, email: e.target.value })}
+              />
+            </div>
+            <div className="form-group">
+              <label>Password * (min 6 chars)</label>
+              <input
+                type="password"
+                placeholder="Min 6 characters"
+                required
+                minLength={6}
+                value={form.password}
+                onChange={e => setForm({ ...form, password: e.target.value })}
+              />
+            </div>
+            <div className="form-group">
+              <label>Assign Company</label>
+              <select
+                value={form.company_id}
+                onChange={e => setForm({ ...form, company_id: e.target.value })}
+              >
+                <option value="">— No Company —</option>
+                {companies.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              {companies.length === 0 && (
+                <p className="field-hint">No companies yet. <a href="/companies">Add a company first →</a></p>
+              )}
+            </div>
+            <button type="submit" className="btn-primary">Create Employee</button>
           </form>
         </div>
       )}
@@ -49,13 +96,25 @@ const Employees = () => {
       <div className="table-card">
         <table>
           <thead>
-            <tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th></tr>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Company</th>
+              <th>Role</th>
+              <th>Joined</th>
+            </tr>
           </thead>
           <tbody>
             {employees.map(emp => (
               <tr key={emp.id}>
                 <td>{emp.name}</td>
                 <td>{emp.email}</td>
+                <td>
+                  {emp.companies?.name
+                    ? <span className="company-tag">🏢 {emp.companies.name}</span>
+                    : <span className="muted">—</span>
+                  }
+                </td>
                 <td><span className={`badge badge-${emp.role}`}>{emp.role}</span></td>
                 <td>{new Date(emp.created_at).toLocaleDateString()}</td>
               </tr>

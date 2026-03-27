@@ -11,7 +11,7 @@ router.post('/generate',
   requireAdmin,
   body('userId').notEmpty(),
   body('month').matches(/^\d{4}-\d{2}$/),
-  body('per_day_pay').isFloat({ min: 0 }),
+  body('deductions').optional().isFloat({ min: 0 }),
   validate,
   generatePayslip
 );
