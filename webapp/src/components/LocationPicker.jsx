@@ -1,90 +1,49 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
+// Singleton promise — only loads once no matter how many times component mounts
+let mapsPromise = null;
 
 const loadGoogleMaps = () => {
-  return new Promise((resolve, reject) => {
+  if (mapsPromise) return mapsPromise;
+  mapsPromise = new Promise((resolve, reject) => {
+    // Already loaded
     if (window.google?.maps?.places) { resolve(); return; }
-    if (document.getElementById('gmap-script')) {
-      const check = setInterval(() => {
-        if (window.google?.maps?.places) { clearInterval(check); resolve(); }
-      }, 150);
-      return;
-    }
+
     const script = document.createElement('script');
-    script.id = 'gmap-script';
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.REACT_APP_GOOGLE_MAPS_KEY}&libraries=places&callback=__gmapInit`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.REACT_APP_GOOGLE_MAPS_KEY}&libraries=places`;
     script.async = true;
-    script.defer = true;
-    window.__gmapInit = resolve;
-    script.onerror = reject;
+    script.onload = () => resolve();
+    script.onerror = () => { mapsPromise = null; reject(new Error('Google Maps failed to load')); };
     document.head.appendChild(script);
   });
+  return mapsPromise;
 };
 
 const LocationPicker = ({ lat, lng, radius, onChange }) => {
-  const mapRef = useRef(null);
-  const mapInstance = useRef(null);
-  const markerRef = useRef(null);
-  const circleRef = useRef(null);
-  const searchRef = useRef(null);
-  const autocompleteRef = useRef(null);
-  const [mapReady, setMapReady] = useState(false);
-  const [mapError, setMapError] = useState('');
-  const [searchValue, setSearchValue] = useState('');
+  const mapRef       = useRef(null);
+  const mapObj       = useRef(null);
+  const markerObj    = useRef(null);
+  const circleObj    = useRef(null);
+  const inputRef     = useRef(null);
+  const acRef        = useRef(null);
+  const [ready, setReady]   = useState(false);
+  const [error, setError]   = useState('');
+  const [search, setSearch] = useState('');
 
+  /* ── 1. Load SDK ── */
   useEffect(() => {
-    loadGoogleMaps()
-      .then(() => setMapReady(true))
-      .catch(() => setMapError('Failed to load Google Maps. Check your API key.'));
+    loadGoogleMaps().then(() => setReady(true)).catch(e => setError(e.message));
   }, []);
 
-  const placeMarker = useCallback((latVal, lngVal) => {
-    if (!mapInstance.current) return;
-    const pos = new window.google.maps.LatLng(latVal, lngVal);
-    if (markerRef.current) {
-      markerRef.current.setPosition(pos);
-    } else {
-      markerRef.current = new window.google.maps.Marker({
-        position: pos,
-        map: mapInstance.current,
-        draggable: true,
-        animation: window.google.maps.Animation.DROP,
-        title: 'Campaign Location',
-      });
-      markerRef.current.addListener('dragend', (e) => {
-        const nLat = e.latLng.lat();
-        const nLng = e.latLng.lng();
-        drawCircle(e.latLng, parseInt(radius) || 200);
-        onChange({ lat: nLat.toFixed(6), lng: nLng.toFixed(6) });
-      });
-    }
-    drawCircle(pos, parseInt(radius) || 200);
-    mapInstance.current.panTo(pos);
-    mapInstance.current.setZoom(16);
-  }, [radius, onChange]);
-
-  const drawCircle = (center, radiusMeters) => {
-    if (circleRef.current) circleRef.current.setMap(null);
-    circleRef.current = new window.google.maps.Circle({
-      map: mapInstance.current,
-      center,
-      radius: radiusMeters,
-      fillColor: '#4f46e5',
-      fillOpacity: 0.15,
-      strokeColor: '#4f46e5',
-      strokeOpacity: 0.8,
-      strokeWeight: 2,
-    });
-  };
-
-  // Init map
+  /* ── 2. Init map ── */
   useEffect(() => {
-    if (!mapReady || !mapRef.current || mapInstance.current) return;
+    if (!ready || !mapRef.current || mapObj.current) return;
 
     const center = lat && lng
-      ? { lat: parseFloat(lat), lng: parseFloat(lng) }
+      ? { lat: +lat, lng: +lng }
       : { lat: 20.5937, lng: 78.9629 };
 
-    mapInstance.current = new window.google.maps.Map(mapRef.current, {
+    mapObj.current = new window.google.maps.Map(mapRef.current, {
       zoom: lat && lng ? 15 : 5,
       center,
       mapTypeControl: false,
@@ -92,93 +51,102 @@ const LocationPicker = ({ lat, lng, radius, onChange }) => {
       fullscreenControl: false,
     });
 
-    mapInstance.current.addListener('click', (e) => {
-      const nLat = e.latLng.lat();
-      const nLng = e.latLng.lng();
-      placeMarker(nLat, nLng);
-      onChange({ lat: nLat.toFixed(6), lng: nLng.toFixed(6) });
+    mapObj.current.addListener('click', e => {
+      drop(e.latLng.lat(), e.latLng.lng());
+      onChange({ lat: e.latLng.lat().toFixed(6), lng: e.latLng.lng().toFixed(6) });
     });
 
-    if (lat && lng) placeMarker(parseFloat(lat), parseFloat(lng));
-  }, [mapReady]);
+    if (lat && lng) drop(+lat, +lng);
+  }, [ready]); // eslint-disable-line
 
-  // Init Autocomplete AFTER map is ready and input is visible
+  /* ── 3. Init Autocomplete (after map ready + input mounted) ── */
   useEffect(() => {
-    if (!mapReady || !searchRef.current || autocompleteRef.current) return;
+    if (!ready || !inputRef.current || acRef.current) return;
 
-    // Small delay to ensure DOM is fully painted
-    const timer = setTimeout(() => {
-      try {
-        autocompleteRef.current = new window.google.maps.places.Autocomplete(
-          searchRef.current,
-          { fields: ['geometry', 'name', 'formatted_address'] }
-        );
+    acRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
+      fields: ['geometry', 'formatted_address', 'name'],
+    });
 
-        // Prevent form submit on Enter key in search
-        searchRef.current.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter') e.preventDefault();
-        });
+    acRef.current.addListener('place_changed', () => {
+      const place = acRef.current.getPlace();
+      if (!place?.geometry?.location) return;
+      const lat = place.geometry.location.lat();
+      const lng = place.geometry.location.lng();
+      setSearch(place.formatted_address || place.name || '');
+      drop(lat, lng);
+      onChange({ lat: lat.toFixed(6), lng: lng.toFixed(6) });
+    });
+  }, [ready]); // eslint-disable-line
 
-        autocompleteRef.current.addListener('place_changed', () => {
-          const place = autocompleteRef.current.getPlace();
-          if (!place?.geometry?.location) return;
-          const nLat = place.geometry.location.lat();
-          const nLng = place.geometry.location.lng();
-          setSearchValue(place.formatted_address || place.name || '');
-          placeMarker(nLat, nLng);
-          onChange({ lat: nLat.toFixed(6), lng: nLng.toFixed(6) });
-        });
-      } catch (e) {
-        console.error('Autocomplete init error:', e);
-      }
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [mapReady]);
-
-  // Update circle when radius prop changes
+  /* ── 4. Redraw circle when radius changes ── */
   useEffect(() => {
-    if (!mapInstance.current || !markerRef.current) return;
-    drawCircle(markerRef.current.getPosition(), parseInt(radius) || 200);
-  }, [radius]);
+    if (markerObj.current) drawCircle(markerObj.current.getPosition(), +radius || 200);
+  }, [radius]); // eslint-disable-line
 
-  const handleClear = () => {
-    if (markerRef.current) { markerRef.current.setMap(null); markerRef.current = null; }
-    if (circleRef.current) { circleRef.current.setMap(null); circleRef.current = null; }
-    setSearchValue('');
+  const drop = (lat, lng) => {
+    const pos = new window.google.maps.LatLng(lat, lng);
+    if (markerObj.current) {
+      markerObj.current.setPosition(pos);
+    } else {
+      markerObj.current = new window.google.maps.Marker({
+        map: mapObj.current, position: pos,
+        draggable: true,
+        animation: window.google.maps.Animation.DROP,
+      });
+      markerObj.current.addListener('dragend', e => {
+        drawCircle(e.latLng, +radius || 200);
+        onChange({ lat: e.latLng.lat().toFixed(6), lng: e.latLng.lng().toFixed(6) });
+      });
+    }
+    drawCircle(pos, +radius || 200);
+    mapObj.current.panTo(pos);
+    mapObj.current.setZoom(16);
+  };
+
+  const drawCircle = (center, r) => {
+    if (circleObj.current) circleObj.current.setMap(null);
+    circleObj.current = new window.google.maps.Circle({
+      map: mapObj.current, center, radius: r,
+      fillColor: '#4f46e5', fillOpacity: 0.15,
+      strokeColor: '#4f46e5', strokeOpacity: 0.8, strokeWeight: 2,
+    });
+  };
+
+  const clear = () => {
+    markerObj.current?.setMap(null); markerObj.current = null;
+    circleObj.current?.setMap(null); circleObj.current = null;
+    setSearch('');
     onChange({ lat: '', lng: '' });
   };
 
   return (
     <div className="location-picker">
+      {/* Search */}
       <div className="location-search-wrap">
         <span className="location-search-icon">🔍</span>
         <input
-          ref={searchRef}
+          ref={inputRef}
           type="text"
-          value={searchValue}
-          onChange={e => setSearchValue(e.target.value)}
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
           placeholder="Search location (e.g. Connaught Place, Delhi)..."
           className="location-search-input"
           autoComplete="off"
         />
         {(lat || lng) && (
-          <button type="button" className="location-clear-btn" onClick={handleClear} title="Clear">✕</button>
+          <button type="button" className="location-clear-btn" onClick={clear}>✕</button>
         )}
       </div>
 
-      {mapError && <div className="error-msg">{mapError}</div>}
-      {!mapReady && !mapError && <div className="map-loading">⏳ Loading map...</div>}
-      <div ref={mapRef} className="location-map" style={{ display: mapReady ? 'block' : 'none' }} />
+      {error && <div className="error-msg">⚠️ {error} — Make sure Maps JavaScript API &amp; Places API are enabled in Google Cloud Console.</div>}
+      {!ready && !error && <div className="map-loading">⏳ Loading map...</div>}
+      <div ref={mapRef} className="location-map" style={{ display: ready ? 'block' : 'none' }} />
 
-      {lat && lng ? (
-        <div className="location-coords-display">
-          <span>📍 <strong>{parseFloat(lat).toFixed(6)}</strong>, <strong>{parseFloat(lng).toFixed(6)}</strong></span>
-          <span className="muted"> · Radius: {radius || 200}m</span>
-        </div>
-      ) : (
-        <p className="field-hint">🖱️ Search a location above or click anywhere on the map to set the campaign location</p>
-      )}
+      {lat && lng
+        ? <div className="location-coords-display">📍 <strong>{(+lat).toFixed(6)}</strong>, <strong>{(+lng).toFixed(6)}</strong> <span className="muted">· {radius || 200}m radius</span></div>
+        : <p className="field-hint">🖱️ Search above or click the map to set location</p>
+      }
     </div>
   );
 };

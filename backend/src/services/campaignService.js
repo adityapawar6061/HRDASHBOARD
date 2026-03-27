@@ -5,6 +5,7 @@ const getAll = async () => {
     .from('campaigns')
     .select(`
       *,
+      companies(id, name),
       campaign_assignments(
         user_id,
         users(id, name, email)
@@ -16,23 +17,23 @@ const getAll = async () => {
 };
 
 const create = async (fields) => {
-  const { name, description, location_lat, location_lng, location_radius_meters, min_hours, salary_per_min_hours } = fields;
+  const { name, description, company_id, location_lat, location_lng, location_radius_meters, min_hours, salary_per_min_hours } = fields;
   const { data, error } = await supabase
     .from('campaigns')
-    .insert({ name, description, location_lat, location_lng, location_radius_meters, min_hours, salary_per_min_hours })
-    .select()
+    .insert({ name, description, company_id: company_id || null, location_lat, location_lng, location_radius_meters, min_hours, salary_per_min_hours })
+    .select('*, companies(id, name)')
     .single();
   if (error) throw { status: 500, message: error.message };
   return data;
 };
 
 const update = async (id, fields) => {
-  const { name, description, location_lat, location_lng, location_radius_meters, min_hours, salary_per_min_hours } = fields;
+  const { name, description, company_id, location_lat, location_lng, location_radius_meters, min_hours, salary_per_min_hours } = fields;
   const { data, error } = await supabase
     .from('campaigns')
-    .update({ name, description, location_lat, location_lng, location_radius_meters, min_hours, salary_per_min_hours })
+    .update({ name, description, company_id: company_id || null, location_lat, location_lng, location_radius_meters, min_hours, salary_per_min_hours })
     .eq('id', id)
-    .select()
+    .select('*, companies(id, name)')
     .single();
   if (error) throw { status: 500, message: error.message };
   return data;

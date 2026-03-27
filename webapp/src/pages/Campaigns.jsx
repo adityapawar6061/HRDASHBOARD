@@ -3,29 +3,35 @@ import api from '../services/api';
 import LocationPicker from '../components/LocationPicker';
 
 const EMPTY_FORM = {
-  name: '', description: '',
+  name: '', description: '', company_id: '',
   location_lat: '', location_lng: '', location_radius_meters: '200',
   min_hours: '5', salary_per_min_hours: '500'
 };
 
 const Campaigns = () => {
-  const [campaigns, setCampaigns] = useState([]);
-  const [employees, setEmployees] = useState([]);
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [error, setError] = useState('');
-  const [assignModal, setAssignModal] = useState(null);
+  const [campaigns, setCampaigns]   = useState([]);
+  const [employees, setEmployees]   = useState([]);
+  const [companies, setCompanies]   = useState([]);
+  const [showForm, setShowForm]     = useState(false);
+  const [editingId, setEditingId]   = useState(null);
+  const [form, setForm]             = useState(EMPTY_FORM);
+  const [error, setError]           = useState('');
+  const [assignModal, setAssignModal] = useState(null); // campaign id
   const [selectedUser, setSelectedUser] = useState('');
   const [expandedId, setExpandedId] = useState(null);
 
   const fetchAll = async () => {
     try {
-      const [c, u] = await Promise.all([api.get('/campaigns'), api.get('/users')]);
+      const [c, u, co] = await Promise.all([
+        api.get('/campaigns'),
+        api.get('/users'),
+        api.get('/companies'),
+      ]);
       setCampaigns(c.data);
       setEmployees(u.data);
+      setCompanies(co.data);
     } catch (err) {
-      setError(err.message || 'Failed to load campaigns');
+      setError(err.message || 'Failed to load data');
     }
   };
 
@@ -35,10 +41,14 @@ const Campaigns = () => {
 
   const handleEdit = (c) => {
     setForm({
-      name: c.name || '', description: c.description || '',
-      location_lat: c.location_lat || '', location_lng: c.location_lng || '',
+      name: c.name || '',
+      description: c.description || '',
+      company_id: c.company_id || '',
+      location_lat: c.location_lat || '',
+      location_lng: c.location_lng || '',
       location_radius_meters: c.location_radius_meters || '200',
-      min_hours: c.min_hours || '5', salary_per_min_hours: c.salary_per_min_hours || '500'
+      min_hours: c.min_hours || '5',
+      salary_per_min_hours: c.salary_per_min_hours || '500',
     });
     setEditingId(c.id);
     setShowForm(true);
@@ -50,6 +60,7 @@ const Campaigns = () => {
     setError('');
     const payload = {
       ...form,
+      company_id: form.company_id || null,
       location_lat: form.location_lat ? parseFloat(form.location_lat) : null,
       location_lng: form.location_lng ? parseFloat(form.location_lng) : null,
       location_radius_meters: parseInt(form.location_radius_meters),
@@ -81,7 +92,16 @@ const Campaigns = () => {
     fetchAll();
   };
 
-  const f = (k) => e => setForm({ ...form, [k]: e.target.value });
+  const f = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
+
+  // Employees filtered by the campaign's company
+  const assignablEmployees = (campaignId) => {
+    const campaign = campaigns.find(c => c.id === campaignId);
+    const companyId = campaign?.company_id;
+    const allEmp = employees.filter(e => e.role === 'employee');
+    if (!companyId) return allEmp; // no company set → show all
+    return allEmp.filter(e => e.company_id === companyId);
+  };
 
   return (
     <div className="page">
@@ -98,71 +118,72 @@ const Campaigns = () => {
           {error && <div className="error-msg">{error}</div>}
           <form onSubmit={handleSubmit}>
 
-            {/* Basic Info */}
+            {/* ── Basic Info ── */}
             <div className="form-section-title">Basic Info</div>
-            <div className="form-group">
-              <label>Campaign Name *</label>
-              <input placeholder="e.g. Summer Drive 2024" required value={form.name} onChange={f('name')} />
+            <div className="form-row">
+              <div className="form-group">
+                <label>Campaign Name *</label>
+                <input placeholder="e.g. Summer Drive 2024" required value={form.name} onChange={f('name')} />
+              </div>
+              <div className="form-group">
+                <label>Company</label>
+                <select value={form.company_id} onChange={f('company_id')}>
+                  <option value="">— No Company —</option>
+                  {companies.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+                {companies.length === 0 && (
+                  <span className="field-hint">No companies yet. <a href="/companies">Add one first →</a></span>
+                )}
+                {form.company_id && (
+                  <span className="field-hint">✅ Only employees from this company can be assigned</span>
+                )}
+              </div>
             </div>
             <div className="form-group">
               <label>Description</label>
               <textarea placeholder="What is this campaign about?" value={form.description} onChange={f('description')} />
             </div>
 
-            {/* Location */}
+            {/* ── Location ── */}
             <div className="form-section-title">📍 Campaign Location</div>
-
-            {/* Map Picker */}
             <LocationPicker
               lat={form.location_lat}
               lng={form.location_lng}
               radius={form.location_radius_meters}
-              onChange={({ lat, lng }) => setForm(prev => ({ ...prev, location_lat: lat, location_lng: lng }))}
+              onChange={({ lat, lng }) => setForm(p => ({ ...p, location_lat: lat, location_lng: lng }))}
             />
-
-            {/* Radius input below map */}
-            <div className="form-group" style={{ marginTop: '12px', maxWidth: '240px' }}>
-              <label>Allowed Radius (meters)</label>
-              <input
-                type="number" min="50" placeholder="200"
-                value={form.location_radius_meters}
-                onChange={f('location_radius_meters')}
-              />
-              <span className="field-hint">The purple circle on the map shows this radius</span>
-            </div>
-
-            {/* Manual override */}
-            <div className="form-row" style={{ marginTop: '8px' }}>
+            <div className="form-row" style={{ marginTop: '12px' }}>
               <div className="form-group">
-                <label>Latitude (manual override)</label>
-                <input
-                  type="number" step="any" placeholder="e.g. 28.6139"
-                  value={form.location_lat}
-                  onChange={e => setForm(prev => ({ ...prev, location_lat: e.target.value }))}
-                />
+                <label>Allowed Radius (meters)</label>
+                <input type="number" min="50" placeholder="200" value={form.location_radius_meters} onChange={f('location_radius_meters')} />
+                <span className="field-hint">Purple circle on map shows this radius</span>
               </div>
               <div className="form-group">
-                <label>Longitude (manual override)</label>
-                <input
-                  type="number" step="any" placeholder="e.g. 77.2090"
-                  value={form.location_lng}
-                  onChange={e => setForm(prev => ({ ...prev, location_lng: e.target.value }))}
-                />
+                <label>Latitude</label>
+                <input type="number" step="any" placeholder="Auto-filled from map" value={form.location_lat}
+                  onChange={e => setForm(p => ({ ...p, location_lat: e.target.value }))} />
+              </div>
+              <div className="form-group">
+                <label>Longitude</label>
+                <input type="number" step="any" placeholder="Auto-filled from map" value={form.location_lng}
+                  onChange={e => setForm(p => ({ ...p, location_lng: e.target.value }))} />
               </div>
             </div>
 
-            {/* Salary Ratio */}
+            {/* ── Salary Ratio ── */}
             <div className="form-section-title">💰 Salary Ratio</div>
             <div className="form-row">
               <div className="form-group">
                 <label>Minimum Hours *</label>
                 <input type="number" step="0.5" min="0.5" placeholder="5" required value={form.min_hours} onChange={f('min_hours')} />
-                <span className="field-hint">Minimum hours to qualify for payment</span>
+                <span className="field-hint">Min hours to qualify for payment</span>
               </div>
               <div className="form-group">
                 <label>Pay per Minimum Hours (₹) *</label>
                 <input type="number" min="0" placeholder="500" required value={form.salary_per_min_hours} onChange={f('salary_per_min_hours')} />
-                <span className="field-hint">Amount paid per {form.min_hours || 'X'} hours worked</span>
+                <span className="field-hint">Amount paid per {form.min_hours || 'X'} hours</span>
               </div>
             </div>
             <div className="salary-preview">
@@ -185,10 +206,7 @@ const Campaigns = () => {
       )}
 
       {campaigns.length === 0 && !showForm && (
-        <div className="empty-card">
-          <p>📋</p>
-          <p>No campaigns yet. Create your first one!</p>
-        </div>
+        <div className="empty-card"><p>📋</p><p>No campaigns yet.</p></div>
       )}
 
       <div className="campaigns-list-full">
@@ -200,36 +218,34 @@ const Campaigns = () => {
                 {c.description && <p className="campaign-desc">{c.description}</p>}
               </div>
               <div className="campaign-full-actions">
-                <button className="btn-sm" onClick={() => setAssignModal(c.id)}>+ Assign</button>
+                <button className="btn-sm" onClick={() => { setAssignModal(c.id); setSelectedUser(''); }}>+ Assign</button>
                 <button className="btn-sm" onClick={() => handleEdit(c)}>✏️ Edit</button>
                 <button className="btn-sm btn-danger" onClick={() => handleDelete(c.id)}>🗑️</button>
               </div>
             </div>
 
             <div className="campaign-pills">
+              {c.companies?.name && (
+                <span className="pill pill-orange">🏢 {c.companies.name}</span>
+              )}
               <span className="pill pill-blue">💰 ₹{c.salary_per_min_hours} per {c.min_hours}h</span>
               {c.location_lat && c.location_lng ? (
                 <span className="pill pill-green">
-                  📍 {parseFloat(c.location_lat).toFixed(4)}, {parseFloat(c.location_lng).toFixed(4)} · {c.location_radius_meters}m radius
+                  📍 {parseFloat(c.location_lat).toFixed(4)}, {parseFloat(c.location_lng).toFixed(4)} · {c.location_radius_meters}m
                 </span>
               ) : (
-                <span className="pill pill-gray">📍 No location set</span>
+                <span className="pill pill-gray">📍 No location</span>
               )}
               <span className="pill pill-purple">👥 {c.campaign_assignments?.length || 0} employees</span>
             </div>
 
-            <div
-              className="campaign-employees-toggle"
-              onClick={() => setExpandedId(expandedId === c.id ? null : c.id)}
-            >
+            <div className="campaign-employees-toggle" onClick={() => setExpandedId(expandedId === c.id ? null : c.id)}>
               {expandedId === c.id ? '▲' : '▼'} Assigned Employees ({c.campaign_assignments?.length || 0})
             </div>
 
             {expandedId === c.id && (
               <div className="assigned-employees">
-                {c.campaign_assignments?.length === 0 && (
-                  <p className="muted" style={{ padding: '8px 0' }}>No employees assigned yet.</p>
-                )}
+                {!c.campaign_assignments?.length && <p className="muted" style={{ padding: '8px 0' }}>No employees assigned yet.</p>}
                 {c.campaign_assignments?.map(a => (
                   <div key={a.user_id} className="assigned-employee-row">
                     <span>👤 {a.users?.name} <span className="muted">({a.users?.email})</span></span>
@@ -242,26 +258,41 @@ const Campaigns = () => {
         ))}
       </div>
 
-      {assignModal && (
-        <div className="modal-overlay" onClick={() => setAssignModal(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <h3>Assign Employee to Campaign</h3>
-            <p className="muted" style={{ marginBottom: '12px' }}>
-              {campaigns.find(c => c.id === assignModal)?.name}
-            </p>
-            <select value={selectedUser} onChange={e => setSelectedUser(e.target.value)}>
-              <option value="">Select employee...</option>
-              {employees.filter(e => e.role === 'employee').map(e => (
-                <option key={e.id} value={e.id}>{e.name} ({e.email})</option>
-              ))}
-            </select>
-            <div className="modal-actions">
-              <button className="btn-primary" onClick={handleAssign}>Assign</button>
-              <button className="btn-secondary" onClick={() => setAssignModal(null)}>Cancel</button>
+      {/* Assign Modal */}
+      {assignModal && (() => {
+        const campaign = campaigns.find(c => c.id === assignModal);
+        const filtered = assignablEmployees(assignModal);
+        return (
+          <div className="modal-overlay" onClick={() => setAssignModal(null)}>
+            <div className="modal" onClick={e => e.stopPropagation()}>
+              <h3>Assign Employee</h3>
+              <p className="muted" style={{ marginBottom: '4px' }}>{campaign?.name}</p>
+              {campaign?.companies?.name && (
+                <p className="field-hint" style={{ marginBottom: '12px' }}>
+                  🏢 Showing employees from <strong>{campaign.companies.name}</strong> only
+                </p>
+              )}
+              {filtered.length === 0 ? (
+                <div className="error-msg">
+                  No employees found{campaign?.company_id ? ` for company "${campaign?.companies?.name}"` : ''}. 
+                  {campaign?.company_id ? ' Add employees to this company first.' : ''}
+                </div>
+              ) : (
+                <select value={selectedUser} onChange={e => setSelectedUser(e.target.value)}>
+                  <option value="">Select employee...</option>
+                  {filtered.map(e => (
+                    <option key={e.id} value={e.id}>{e.name} ({e.email})</option>
+                  ))}
+                </select>
+              )}
+              <div className="modal-actions">
+                <button className="btn-primary" onClick={handleAssign} disabled={!selectedUser}>Assign</button>
+                <button className="btn-secondary" onClick={() => setAssignModal(null)}>Cancel</button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };
