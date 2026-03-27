@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
+import LocationPicker from '../components/LocationPicker';
 
 const EMPTY_FORM = {
   name: '', description: '',
@@ -92,18 +93,16 @@ const Campaigns = () => {
       </div>
 
       {showForm && (
-        <div className="form-card">
+        <div className="form-card form-card-wide">
           <h3>{editingId ? '✏️ Edit Campaign' : '➕ New Campaign'}</h3>
           {error && <div className="error-msg">{error}</div>}
           <form onSubmit={handleSubmit}>
 
             {/* Basic Info */}
             <div className="form-section-title">Basic Info</div>
-            <div className="form-row">
-              <div className="form-group">
-                <label>Campaign Name *</label>
-                <input placeholder="e.g. Summer Drive 2024" required value={form.name} onChange={f('name')} />
-              </div>
+            <div className="form-group">
+              <label>Campaign Name *</label>
+              <input placeholder="e.g. Summer Drive 2024" required value={form.name} onChange={f('name')} />
             </div>
             <div className="form-group">
               <label>Description</label>
@@ -112,21 +111,45 @@ const Campaigns = () => {
 
             {/* Location */}
             <div className="form-section-title">📍 Campaign Location</div>
-            <div className="form-row-3">
+
+            {/* Map Picker */}
+            <LocationPicker
+              lat={form.location_lat}
+              lng={form.location_lng}
+              radius={form.location_radius_meters}
+              onChange={({ lat, lng }) => setForm(prev => ({ ...prev, location_lat: lat, location_lng: lng }))}
+            />
+
+            {/* Radius input below map */}
+            <div className="form-group" style={{ marginTop: '12px', maxWidth: '240px' }}>
+              <label>Allowed Radius (meters)</label>
+              <input
+                type="number" min="50" placeholder="200"
+                value={form.location_radius_meters}
+                onChange={f('location_radius_meters')}
+              />
+              <span className="field-hint">The purple circle on the map shows this radius</span>
+            </div>
+
+            {/* Manual override */}
+            <div className="form-row" style={{ marginTop: '8px' }}>
               <div className="form-group">
-                <label>Latitude</label>
-                <input type="number" step="any" placeholder="e.g. 28.6139" value={form.location_lat} onChange={f('location_lat')} />
+                <label>Latitude (manual override)</label>
+                <input
+                  type="number" step="any" placeholder="e.g. 28.6139"
+                  value={form.location_lat}
+                  onChange={e => setForm(prev => ({ ...prev, location_lat: e.target.value }))}
+                />
               </div>
               <div className="form-group">
-                <label>Longitude</label>
-                <input type="number" step="any" placeholder="e.g. 77.2090" value={form.location_lng} onChange={f('location_lng')} />
-              </div>
-              <div className="form-group">
-                <label>Allowed Radius (meters)</label>
-                <input type="number" min="50" placeholder="200" value={form.location_radius_meters} onChange={f('location_radius_meters')} />
+                <label>Longitude (manual override)</label>
+                <input
+                  type="number" step="any" placeholder="e.g. 77.2090"
+                  value={form.location_lng}
+                  onChange={e => setForm(prev => ({ ...prev, location_lng: e.target.value }))}
+                />
               </div>
             </div>
-            <p className="field-hint">💡 Employees must be within this radius to punch in/out for this campaign. Leave lat/lng empty to skip location check.</p>
 
             {/* Salary Ratio */}
             <div className="form-section-title">💰 Salary Ratio</div>
@@ -153,7 +176,7 @@ const Campaigns = () => {
               ) : <span className="muted">Fill hours and pay to see preview</span>}
             </div>
 
-            <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
               <button type="submit" className="btn-primary">{editingId ? 'Update Campaign' : 'Create Campaign'}</button>
               <button type="button" className="btn-secondary" onClick={resetForm}>Cancel</button>
             </div>
@@ -171,7 +194,6 @@ const Campaigns = () => {
       <div className="campaigns-list-full">
         {campaigns.map(c => (
           <div key={c.id} className="campaign-full-card">
-            {/* Header */}
             <div className="campaign-full-header">
               <div>
                 <h3>{c.name}</h3>
@@ -184,11 +206,8 @@ const Campaigns = () => {
               </div>
             </div>
 
-            {/* Info Pills */}
             <div className="campaign-pills">
-              <span className="pill pill-blue">
-                💰 ₹{c.salary_per_min_hours} per {c.min_hours}h
-              </span>
+              <span className="pill pill-blue">💰 ₹{c.salary_per_min_hours} per {c.min_hours}h</span>
               {c.location_lat && c.location_lng ? (
                 <span className="pill pill-green">
                   📍 {parseFloat(c.location_lat).toFixed(4)}, {parseFloat(c.location_lng).toFixed(4)} · {c.location_radius_meters}m radius
@@ -196,12 +215,9 @@ const Campaigns = () => {
               ) : (
                 <span className="pill pill-gray">📍 No location set</span>
               )}
-              <span className="pill pill-purple">
-                👥 {c.campaign_assignments?.length || 0} employees
-              </span>
+              <span className="pill pill-purple">👥 {c.campaign_assignments?.length || 0} employees</span>
             </div>
 
-            {/* Assigned Employees */}
             <div
               className="campaign-employees-toggle"
               onClick={() => setExpandedId(expandedId === c.id ? null : c.id)}
@@ -226,7 +242,6 @@ const Campaigns = () => {
         ))}
       </div>
 
-      {/* Assign Modal */}
       {assignModal && (
         <div className="modal-overlay" onClick={() => setAssignModal(null)}>
           <div className="modal" onClick={e => e.stopPropagation()}>

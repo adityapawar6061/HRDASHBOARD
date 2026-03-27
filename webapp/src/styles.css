@@ -188,3 +188,19 @@ tr.clickable:hover td { background: var(--bg); cursor: pointer; }
 .net-row td { background: #f0fdf4; }
 .text-success { color: #16a34a; }
 .text-danger { color: var(--danger); }
+
+/* LocationPicker */
+.form-card-wide { max-width: 780px; }
+.location-picker { display: flex; flex-direction: column; gap: 8px; }
+.location-search-wrap { position: relative; display: flex; align-items: center; }
+.location-search-icon { position: absolute; left: 12px; font-size: 15px; pointer-events: none; z-index: 1; }
+.location-search-input { width: 100%; padding: 10px 40px 10px 36px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; }
+.location-search-input:focus { border-color: var(--primary); }
+.location-clear-btn { position: absolute; right: 10px; background: none; border: none; font-size: 16px; color: var(--muted); cursor: pointer; padding: 4px; line-height: 1; }
+.location-clear-btn:hover { color: var(--danger); }
+.location-map { width: 100%; height: 340px; border-radius: 10px; border: 1px solid var(--border); }
+.map-loading { width: 100%; height: 340px; border-radius: 10px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; background: var(--bg); color: var(--muted); font-size: 14px; }
+.location-coords-display { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 8px 14px; font-size: 13px; display: flex; gap: 8px; align-items: center; }
+
+/* Google Places autocomplete dropdown z-index fix */
+.pac-container { z-index: 9999 !important; }
