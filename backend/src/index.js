@@ -17,6 +17,7 @@ app.use('/api/campaigns', require('./routes/campaigns'));
 app.use('/api/salary', require('./routes/salary'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/companies', require('./routes/companies'));
+app.use('/api/payslip-requests', require('./routes/payslipRequests'));
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 

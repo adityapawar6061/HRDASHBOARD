@@ -9,7 +9,7 @@ data class User(
     val role: String
 )
 
-data class LoginResponse(val token: String, val user: User)
+data class LoginResponse(val token: String?, val user: User?)
 
 data class DeviceInfo(
     val deviceName: String,
@@ -39,3 +39,27 @@ data class AttendanceResponse(
     val total: Int,
     val page: Int
 )
+
+data class Campaign(
+    val id: String,
+    val name: String,
+    val description: String?,
+    val location_lat: Double?,
+    val location_lng: Double?,
+    val location_radius_meters: Int?
+)
+
+data class CampaignAssignment(
+    val campaign_id: String,
+    val campaigns: Campaign?
+)
+
+data class PayslipRequest(
+    val id: String,
+    val user_id: String,
+    val month: String,
+    val status: String,
+    val requested_at: String
+)
+
+data class PayslipRequestBody(val month: String)

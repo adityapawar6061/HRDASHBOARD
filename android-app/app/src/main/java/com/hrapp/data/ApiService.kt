@@ -21,4 +21,16 @@ interface ApiService {
         @Query("page") page: Int = 1,
         @Query("limit") limit: Int = 20
     ): Response<AttendanceResponse>
+
+    @GET("campaigns")
+    suspend fun getCampaigns(): Response<List<Campaign>>
+
+    @GET("salary")
+    suspend fun getSalaries(): Response<List<Any>>
+
+    @GET("payslip-requests")
+    suspend fun getPayslipRequests(): Response<List<PayslipRequest>>
+
+    @POST("payslip-requests")
+    suspend fun requestPayslip(@Body body: PayslipRequestBody): Response<PayslipRequest>
 }

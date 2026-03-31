@@ -1,5 +1,7 @@
 package com.hrapp.ui
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -17,7 +19,6 @@ class LoginActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // If already logged in, go to main
         val prefs = getSharedPreferences("hr_prefs", Context.MODE_PRIVATE)
         if (prefs.getString("token", null) != null) {
             startActivity(Intent(this, MainActivity::class.java))
@@ -34,7 +35,14 @@ class LoginActivity : AppCompatActivity() {
                 Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
+            binding.errorCard.visibility = View.GONE
             login(email, password)
+        }
+
+        binding.btnCopyError.setOnClickListener {
+            val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            cm.setPrimaryClip(ClipData.newPlainText("error", binding.tvErrorMessage.text))
+            Toast.makeText(this, "Error copied", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -46,20 +54,37 @@ class LoginActivity : AppCompatActivity() {
             try {
                 val api = RetrofitClient.getInstance(applicationContext)
                 val res = api.login(LoginRequest(email, password))
-                if (res.isSuccessful) {
-                    val body = res.body()!!
-                    getSharedPreferences("hr_prefs", Context.MODE_PRIVATE).edit()
-                        .putString("token", body.token)
-                        .putString("user_name", body.user.name)
-                        .putString("user_role", body.user.role)
-                        .apply()
-                    startActivity(Intent(this@LoginActivity, MainActivity::class.java))
-                    finish()
-                } else {
-                    Toast.makeText(this@LoginActivity, "Invalid credentials", Toast.LENGTH_SHORT).show()
+                val body = if (res.isSuccessful) res.body() else null
+                val token = body?.token
+                val user = body?.user
+                when {
+                    !res.isSuccessful -> {
+                        val errBody = res.errorBody()?.string() ?: "HTTP ${res.code()}"
+                        binding.errorCard.visibility = View.VISIBLE
+                        binding.tvErrorMessage.text = "HTTP ${res.code()}\n$errBody"
+                    }
+                    token == null -> {
+                        binding.errorCard.visibility = View.VISIBLE
+                        binding.tvErrorMessage.text = "Login succeeded but no token returned.\nRaw body: $body"
+                    }
+                    user == null -> {
+                        binding.errorCard.visibility = View.VISIBLE
+                        binding.tvErrorMessage.text = "Token received but user profile is null.\n\nYour Supabase Auth account exists but there is no matching row in the public.users table.\n\nFix: In Supabase SQL Editor run:\nINSERT INTO public.users (id, name, email, role)\nVALUES ('<your-auth-uuid>', 'Your Name', '${ binding.etEmail.text }', 'admin');"
+                    }
+                    else -> {
+                        getSharedPreferences("hr_prefs", Context.MODE_PRIVATE).edit()
+                            .putString("token", token)
+                            .putString("user_name", user.name)
+                            .putString("user_role", user.role)
+                            .apply()
+                        startActivity(Intent(this@LoginActivity, MainActivity::class.java))
+                        finish()
+                    }
                 }
             } catch (e: Exception) {
-                Toast.makeText(this@LoginActivity, "Network error: ${e.message}", Toast.LENGTH_SHORT).show()
+                val fullError = "${e.javaClass.name}: ${e.message}\n\n${e.stackTraceToString().take(800)}"
+                binding.errorCard.visibility = View.VISIBLE
+                binding.tvErrorMessage.text = fullError
             } finally {
                 binding.progressBar.visibility = View.GONE
                 binding.btnLogin.isEnabled = true

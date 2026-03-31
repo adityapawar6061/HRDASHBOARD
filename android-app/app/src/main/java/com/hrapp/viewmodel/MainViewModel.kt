@@ -10,6 +10,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.hrapp.data.*
 import kotlinx.coroutines.launch
+import kotlin.math.*
 
 sealed class UiState<out T> {
     object Loading : UiState<Nothing>()
@@ -27,8 +28,28 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val _logs = MutableLiveData<UiState<AttendanceResponse>>()
     val logs: LiveData<UiState<AttendanceResponse>> = _logs
 
+    private val _campaigns = MutableLiveData<UiState<List<Campaign>>>()
+    val campaigns: LiveData<UiState<List<Campaign>>> = _campaigns
+
+    private val _payslipRequests = MutableLiveData<UiState<List<PayslipRequest>>>()
+    val payslipRequests: LiveData<UiState<List<PayslipRequest>>> = _payslipRequests
+
+    private val _payslipRequestState = MutableLiveData<UiState<PayslipRequest>>()
+    val payslipRequestState: LiveData<UiState<PayslipRequest>> = _payslipRequestState
+
     val isPunchedIn: Boolean
         get() = prefs.getBoolean("is_punched_in", false)
+
+    fun loadCampaigns() = viewModelScope.launch {
+        _campaigns.value = UiState.Loading
+        try {
+            val res = api.getCampaigns()
+            if (res.isSuccessful) _campaigns.value = UiState.Success(res.body() ?: emptyList())
+            else _campaigns.value = UiState.Error("Failed to load campaigns")
+        } catch (e: Exception) {
+            _campaigns.value = UiState.Error(e.message ?: "Network error")
+        }
+    }
 
     fun punchIn(lat: Double, lng: Double) = viewModelScope.launch {
         _punchState.value = UiState.Loading
@@ -77,5 +98,40 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         } catch (e: Exception) {
             _logs.value = UiState.Error(e.message ?: "Network error")
         }
+    }
+
+    fun loadPayslipRequests() = viewModelScope.launch {
+        _payslipRequests.value = UiState.Loading
+        try {
+            val res = api.getPayslipRequests()
+            if (res.isSuccessful) _payslipRequests.value = UiState.Success(res.body() ?: emptyList())
+            else _payslipRequests.value = UiState.Error("Failed to load requests")
+        } catch (e: Exception) {
+            _payslipRequests.value = UiState.Error(e.message ?: "Network error")
+        }
+    }
+
+    fun requestPayslip(month: String) = viewModelScope.launch {
+        _payslipRequestState.value = UiState.Loading
+        try {
+            val res = api.requestPayslip(PayslipRequestBody(month))
+            if (res.isSuccessful) {
+                _payslipRequestState.value = UiState.Success(res.body()!!)
+                loadPayslipRequests()
+            } else {
+                _payslipRequestState.value = UiState.Error(res.errorBody()?.string() ?: "Request failed")
+            }
+        } catch (e: Exception) {
+            _payslipRequestState.value = UiState.Error(e.message ?: "Network error")
+        }
+    }
+
+    // Returns distance in meters between two lat/lng points
+    fun distanceMeters(lat1: Double, lng1: Double, lat2: Double, lng2: Double): Double {
+        val r = 6371000.0
+        val dLat = Math.toRadians(lat2 - lat1)
+        val dLng = Math.toRadians(lng2 - lng1)
+        val a = sin(dLat / 2).pow(2) + cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) * sin(dLng / 2).pow(2)
+        return r * 2 * atan2(sqrt(a), sqrt(1 - a))
     }
 }
