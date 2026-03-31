@@ -66,4 +66,34 @@
         android:visibility="gone"
         android:indeterminateTint="#FFFFFF"/>
 
+    <!-- Error Card -->
+    <LinearLayout
+        android:id="@+id/errorCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="#FFEEEE"
+        android:padding="12dp"
+        android:layout_marginTop="16dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tvErrorMessage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#CC0000"
+            android:textSize="12sp"
+            android:layout_marginBottom="8dp"/>
+
+        <Button
+            android:id="@+id/btnCopyError"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Copy Error"
+            android:textSize="11sp"
+            android:backgroundTint="#CC0000"
+            android:textColor="#FFFFFF"
+            android:padding="6dp"/>
+    </LinearLayout>
+
 </LinearLayout>
